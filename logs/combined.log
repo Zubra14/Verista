@@ -1,0 +1,53 @@
+2025-03-06T09:47:38.675Z [INFO]: 🚀 Server running on port 5001
+2025-03-06T09:47:43.202Z [INFO]: ✅ PostgreSQL Connected
+2025-03-06T10:12:54.823Z [INFO]: 🚀 Server running on port 5001
+2025-03-06T10:12:58.582Z [INFO]: ✅ PostgreSQL Connected
+2025-03-06T10:27:19.364Z [INFO]: 🚀 Server running on port 5001
+2025-03-06T10:27:23.077Z [INFO]: ✅ PostgreSQL Connected
+2025-03-06T10:39:45.795Z [INFO]: 🚀 Server running on port 5001
+2025-03-06T10:39:49.574Z [INFO]: ✅ PostgreSQL Connected
+2025-03-06T10:40:22.022Z [INFO]: ::1 - - [06/Mar/2025:10:40:22 +0000] "POST /api/auth/register HTTP/1.1" 400 33 "-" "PostmanRuntime/7.43.0"
+2025-03-06T10:46:12.585Z [INFO]: ::1 - - [06/Mar/2025:10:46:12 +0000] "POST /api/auth/register HTTP/1.1" 201 398 "-" "PostmanRuntime/7.43.0"
+2025-03-06T10:59:44.722Z [INFO]: 🚀 Server running on port 5001
+2025-03-06T10:59:48.451Z [INFO]: ✅ PostgreSQL Connected
+2025-03-06T11:00:08.918Z [INFO]: ::1 - - [06/Mar/2025:11:00:08 +0000] "GET /api-docs HTTP/1.1" 301 158 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+2025-03-06T11:00:08.924Z [INFO]: ::1 - - [06/Mar/2025:11:00:08 +0000] "GET /api-docs/ HTTP/1.1" 200 3106 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+2025-03-06T11:00:08.979Z [INFO]: ::1 - - [06/Mar/2025:11:00:08 +0000] "GET /api-docs/swagger-ui.css HTTP/1.1" 200 154985 "http://localhost:5001/api-docs/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+2025-03-06T11:00:08.983Z [INFO]: ::1 - - [06/Mar/2025:11:00:08 +0000] "GET /api-docs/swagger-ui-init.js HTTP/1.1" 200 1750 "http://localhost:5001/api-docs/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+2025-03-06T11:00:08.989Z [INFO]: ::1 - - [06/Mar/2025:11:00:08 +0000] "GET /api-docs/swagger-ui-standalone-preset.js HTTP/1.1" 200 229223 "http://localhost:5001/api-docs/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+2025-03-06T11:00:08.994Z [INFO]: ::1 - - [06/Mar/2025:11:00:08 +0000] "GET /api-docs/swagger-ui-bundle.js HTTP/1.1" 200 1466324 "http://localhost:5001/api-docs/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+2025-03-06T11:00:09.145Z [INFO]: ::1 - - [06/Mar/2025:11:00:09 +0000] "GET /api-docs/favicon-32x32.png HTTP/1.1" 200 628 "http://localhost:5001/api-docs/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+2025-03-06T14:34:15.240Z [INFO]: 🚀 Server running on port 5001
+2025-03-06T14:34:19.044Z [INFO]: ✅ PostgreSQL Connected
+2025-03-06T14:36:02.864Z [INFO]: 🚀 Server running on port 5001
+2025-03-06T14:36:06.658Z [INFO]: ✅ PostgreSQL Connected
+2025-03-06T14:49:32.522Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:14:49:32 +0000] "POST /api/auth/register HTTP/1.1" 201 416 "-" "-"
+2025-03-06T14:49:32.524Z [INFO]: ✅ PostgreSQL Connected
+2025-03-06T14:49:33.024Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:14:49:33 +0000] "POST /api/auth/login HTTP/1.1" 400 39 "-" "-"
+2025-03-06T14:49:33.039Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:14:49:33 +0000] "GET /api/auth/protected HTTP/1.1" 401 47 "-" "-"
+2025-03-06T14:52:14.003Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:14:52:14 +0000] "POST /api/auth/register HTTP/1.1" 201 416 "-" "-"
+2025-03-06T14:52:14.014Z [INFO]: ✅ PostgreSQL Connected
+2025-03-06T14:52:14.500Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:14:52:14 +0000] "POST /api/auth/login HTTP/1.1" 400 39 "-" "-"
+2025-03-06T14:52:14.509Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:14:52:14 +0000] "GET /api/auth/protected HTTP/1.1" 401 47 "-" "-"
+2025-03-06T14:58:12.343Z [INFO]: 🚀 Server running on port 5001
+2025-03-06T14:58:16.046Z [INFO]: ✅ PostgreSQL Connected
+2025-03-06T14:58:59.078Z [INFO]: ::1 - - [06/Mar/2025:14:58:59 +0000] "POST /api/auth/register HTTP/1.1" 400 33 "-" "PostmanRuntime/7.43.0"
+2025-03-06T15:12:14.793Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:15:12:14 +0000] "POST /api/auth/register HTTP/1.1" 201 412 "-" "-"
+2025-03-06T15:12:14.795Z [INFO]: ✅ PostgreSQL Connected
+2025-03-06T15:12:15.397Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:15:12:15 +0000] "POST /api/auth/login HTTP/1.1" 400 39 "-" "-"
+2025-03-06T15:12:15.413Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:15:12:15 +0000] "GET /api/auth/protected HTTP/1.1" 401 47 "-" "-"
+2025-03-06T15:16:38.390Z [INFO]: 🚀 Server running on port 5001
+2025-03-06T15:16:42.035Z [INFO]: ✅ PostgreSQL Connected
+2025-03-06T15:18:27.102Z [INFO]: ::1 - - [06/Mar/2025:15:18:27 +0000] "POST /api/auth/register HTTP/1.1" 201 400 "-" "PostmanRuntime/7.43.0"
+2025-03-06T15:31:55.360Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:15:31:55 +0000] "POST /api/auth/register HTTP/1.1" 201 412 "-" "-"
+2025-03-06T15:31:55.362Z [INFO]: ✅ PostgreSQL Connected
+2025-03-06T15:31:55.965Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:15:31:55 +0000] "POST /api/auth/login HTTP/1.1" 400 39 "-" "-"
+2025-03-06T15:31:55.980Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:15:31:55 +0000] "GET /api/auth/protected HTTP/1.1" 401 47 "-" "-"
+2025-03-06T15:38:32.271Z [INFO]: 🚀 Server running on port 5001
+2025-03-06T15:38:35.957Z [INFO]: ✅ PostgreSQL Connected
+2025-03-06T15:40:01.768Z [INFO]: ::1 - - [06/Mar/2025:15:40:01 +0000] "POST /api/auth/register HTTP/1.1" 400 33 "-" "PostmanRuntime/7.43.0"
+2025-03-06T15:46:16.180Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:15:46:16 +0000] "POST /api/auth/register HTTP/1.1" 201 409 "-" "-"
+2025-03-06T15:46:16.182Z [INFO]: ✅ PostgreSQL Connected
+2025-03-06T15:46:17.411Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:15:46:17 +0000] "POST /api/auth/register HTTP/1.1" 201 414 "-" "-"
+2025-03-06T15:46:18.055Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:15:46:18 +0000] "POST /api/auth/login HTTP/1.1" 200 180 "-" "-"
+2025-03-06T15:46:18.057Z [INFO]: ::ffff:127.0.0.1 - - [06/Mar/2025:15:46:18 +0000] "GET /api/auth/protected HTTP/1.1" 401 47 "-" "-"
