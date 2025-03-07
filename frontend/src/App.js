@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import axios from "axios";
+import "./App.css"; // Import the CSS file
 
 function App() {
   useEffect(() => {
@@ -17,7 +18,7 @@ function App() {
   }, []);
 
   return (
-    <div>
+    <div className="App">
       <h1>Welcome to Verista</h1>
     </div>
   );

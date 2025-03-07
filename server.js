@@ -1,4 +1,6 @@
-require('dotenv').config();
+require("dotenv").config();
+console.log("Loaded ENV:", process.env.PORT); // Debugging
+
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
