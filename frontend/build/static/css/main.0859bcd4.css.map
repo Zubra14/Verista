@@ -1,0 +1,1 @@
+{"version":3,"file":"static/css/main.0859bcd4.css","mappings":"AAAA,KACI,iBACF,CAEA,QACE,UACF","sources":["App.css"],"sourcesContent":[".App {\n    text-align: center;\n  }\n  \n  .App h1 {\n    color: #333;\n  }"],"names":[],"sourceRoot":""}
