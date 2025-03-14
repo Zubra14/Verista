@@ -2,8 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
-
-console.log("✅ index.js is loading...");
+import "./index.css"; // Ensure styles are loaded
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {
