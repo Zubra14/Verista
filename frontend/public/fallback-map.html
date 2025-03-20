@@ -1,0 +1,47 @@
+<!-- public/fallback-map.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    #map {
+      height: 100%;
+      width: 100%;
+      border-radius: 8px;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    function initMap() {
+      const defaultLocation = { lat: -26.2041, lng: 28.0473 };
+      const map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 15,
+        center: defaultLocation,
+      });
+      
+      const marker = new google.maps.Marker({
+        position: defaultLocation,
+        map: map,
+        title: "Vehicle Location",
+      });
+      
+      // Function to receive location updates from parent
+      window.updateLocation = function(lat, lng) {
+        const newPosition = { lat, lng };
+        marker.setPosition(newPosition);
+        map.panTo(newPosition);
+        return true;
+      };
+    }
+  </script>
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap">
+  </script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+// src/utils/errorTracker.js
+import { toast } from 'react-toastify';
+
+export const errorTypes = {
+  MAPS_API: 'maps_api',
+  DATABASE: 'database',
+  LOCATION: 'location',
+  POLICY: 'policy',
+  NETWORK: 'network',
+  UNKNOWN: 'unknown'
+};
+
+export const trackError = (error, context, type = errorTypes.UNKNOWN) => {
+  const errorInfo = {
+    message: error.message || 'Unknown error',
+    code: error.code,
+    details: error.details,
+    context,
+    type,
+    timestamp: new Date().toISOString(),
+    url: window.location.href
+  };
+  
+  // Log to console with enhanced formatting
+  console.error(`[${type.toUpperCase()}] Error in ${context}:`, errorInfo);
+  
+  // Store in session for debugging
+  const storedErrors = JSON.parse(sessionStorage.getItem('verista_errors') || '[]');
+  storedErrors.push(errorInfo);
+  sessionStorage.setItem('verista_errors', JSON.stringify(storedErrors.slice(-20)));
+  
+  // Show user-friendly toast (if appropriate)
+  if (type !== errorTypes.MAPS_API) { // Skip map errors to avoid notification spam
+    toast.error(getUserFriendlyMessage(errorInfo));
+  }
+  
+  return errorInfo;
+};
+
+const getUserFriendlyMessage = (errorInfo) => {
+  switch (errorInfo.type) {
+    case errorTypes.MAPS_API:
+      return 'There was a problem loading the map. We\'ll show a simplified view instead.';
+    case errorTypes.DATABASE:
+      return 'We\'re having trouble accessing the database. Some features may be limited.';
+    case errorTypes.LOCATION:
+      return 'Location tracking is temporarily unavailable.';
+    case errorTypes.POLICY:
+      return 'You don\'t have permission to access this information.';
+    case errorTypes.NETWORK:
+      return 'Network connection issue. Please check your internet connection.';
+    default:
+      return 'An unexpected error occurred. We\'re working on it.';
+  }
+};
