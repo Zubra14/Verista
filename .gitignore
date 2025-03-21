@@ -96,3 +96,14 @@ policies_backup.sql
 *.sublime-project
 *.sublime-workspace
 *.code-workspace
+
+# Ignore all files in the root directory except for specific ones
+/*
+!.gitignore
+!README.md
+!package.json
+!package-lock.json
+!yarn.lock
+!public/
+!src/
+!frontend/
