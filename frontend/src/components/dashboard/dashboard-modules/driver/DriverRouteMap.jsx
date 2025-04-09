@@ -5,34 +5,38 @@ import LoadingSpinner from "../../../common/LoadingSpinner";
 import { toast } from "react-toastify";
 import mapEmergencyFix from "../../../../utils/mapEmergencyFix";
 import offlineManager from "../../../../utils/enhancedOfflineManager";
+import locationFallback from "../../../../utils/locationFallback";
+import { createMapInstance, createMapMarker } from "@services/mapService";
+import { loadGoogleMapsScript, initializeMapWithFallback } from "../../../../utils/mapUtils";
+import { locationTracker } from "../../../../utils/locationUtils";
+
+const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+const googleMapsMapId = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || "";
 
 // Default center (Johannesburg)
 const defaultCenter = { lat: -26.2041, lng: 28.0473 };
 
-/**
- * Generate a mock location for fallback purposes
- * @param {Object} baseLocation - Optional base location to vary slightly
- * @returns {Object} - Generated location object
- */
-const generateFallbackLocation = (baseLocation = null) => {
-  if (baseLocation) {
-    // Slightly vary the existing location
-    return {
-      latitude: baseLocation.latitude + (Math.random() - 0.5) * 0.005,
-      longitude: baseLocation.longitude + (Math.random() - 0.5) * 0.005,
-      speed: Math.floor(Math.random() * 25) + 10,
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  // Default to Johannesburg coordinates
-  return {
-    latitude: defaultCenter.lat,
-    longitude: defaultCenter.lng,
-    speed: Math.floor(Math.random() * 25) + 10,
-    timestamp: new Date().toISOString(),
-  };
-};
+// Enhanced loading state component
+const MapLoadingState = () => (
+  <div className="flex flex-col items-center justify-center h-full w-full bg-gray-50 rounded-lg border border-gray-200 p-6">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+    <p className="text-gray-700 font-medium">Loading interactive map...</p>
+    <p className="text-xs text-gray-500 mt-2 text-center">
+      This may take a moment depending on your connection speed
+    </p>
+    <div className="mt-4 w-full max-w-md">
+      <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-blue-500 rounded-full animate-pulse"
+          style={{ width: "60%" }}
+        ></div>
+      </div>
+    </div>
+    <p className="text-xs text-gray-400 mt-3">
+      Loading Google Maps API and route information
+    </p>
+  </div>
+);
 
 const DriverRouteMap = ({
   routeId,
@@ -55,6 +59,9 @@ const DriverRouteMap = ({
   const [mapStatus, setMapStatus] = useState("loading");
   const [routeData, setRouteData] = useState(null);
   const [usingFallbackData, setUsingFallbackData] = useState(false);
+  const [driverLocation, setDriverLocation] = useState(currentLocation);
+  const [isTrackingActive, setIsTrackingActive] = useState(false);
+  const [locationPermission, setLocationPermission] = useState(null);
 
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -63,6 +70,7 @@ const DriverRouteMap = ({
   const stopMarkersRef = useRef([]);
   const initTimeoutRef = useRef(null);
   const polylineRef = useRef(null);
+  const locationTrackerRef = useRef(null);
 
   const mapContainerStyle = {
     width: "100%",
@@ -73,7 +81,92 @@ const DriverRouteMap = ({
   // Initialize offline support on app startup
   useEffect(() => {
     offlineManager.initializeOfflineSupport();
+    
+    // Check geolocation permission
+    const checkPermission = async () => {
+      try {
+        const permission = await locationTracker.checkPermission();
+        setLocationPermission(permission);
+      } catch (err) {
+        console.warn("Failed to check location permission:", err);
+      }
+    };
+    
+    checkPermission();
   }, []);
+  
+  // Handle location tracking
+  useEffect(() => {
+    // Start location tracking if not already tracking
+    if (!isTrackingActive && mapReady) {
+      const startTracking = async () => {
+        try {
+          // Try to get permission if not granted yet
+          if (locationPermission !== 'granted') {
+            const newPermission = await locationTracker.requestPermission();
+            setLocationPermission(newPermission);
+            
+            if (newPermission !== 'granted') {
+              // If permission denied, use provided location if available
+              if (currentLocation) {
+                setDriverLocation(currentLocation);
+              }
+              return;
+            }
+          }
+          
+          // Start tracking with the location tracker
+          locationTrackerRef.current = locationTracker.startTracking(
+            (location) => {
+              // Update driver location when we get updates
+              setDriverLocation(location);
+              
+              // Update database if we have a vehicle ID
+              if (vehicleId) {
+                updateVehicleLocation(
+                  vehicleId,
+                  location.latitude,
+                  location.longitude,
+                  location.speed
+                );
+              }
+            },
+            {
+              enableHighAccuracy: true,
+              updateInterval: 10000, // 10 seconds
+              continuousUpdates: true,
+              mockLocationInDev: import.meta.env.DEV && !navigator.geolocation,
+              errorCallback: (error) => {
+                console.warn("Location tracking error:", error);
+                // Fall back to provided location if available
+                if (currentLocation && !driverLocation) {
+                  setDriverLocation(currentLocation);
+                }
+              }
+            }
+          );
+          
+          setIsTrackingActive(true);
+        } catch (err) {
+          console.error("Failed to start location tracking:", err);
+          // Fall back to provided location
+          if (currentLocation) {
+            setDriverLocation(currentLocation);
+          }
+        }
+      };
+      
+      startTracking();
+    }
+    
+    // Cleanup function
+    return () => {
+      if (locationTrackerRef.current && locationTrackerRef.current.stop) {
+        locationTrackerRef.current.stop();
+        setIsTrackingActive(false);
+      }
+    };
+  }, [mapReady, isTrackingActive, locationPermission, currentLocation, vehicleId]);
 
   // Fetch route data with offline support
   const fetchRouteData = async (routeId) => {
@@ -120,10 +213,10 @@ const DriverRouteMap = ({
             onLoadingComplete();
 
             // Update vehicle position if we have location data
-            if (currentLocation) {
+            if (driverLocation) {
               emergencyMap.updateVehiclePosition(
-                currentLocation.latitude,
-                currentLocation.longitude
+                driverLocation.latitude,
+                driverLocation.longitude
               );
             }
 
@@ -143,10 +236,10 @@ const DriverRouteMap = ({
 
       return () => clearTimeout(emergencyTimer);
     }
-  }, [loading, stops, currentLocation, onLoadingComplete, onMapFailure]);
+  }, [loading, stops, driverLocation, onLoadingComplete, onMapFailure]);
 
-  // Safely initialize map with container existence check
-  const initializeMap = useCallback(() => {
+  // Safely initialize map with container existence check using enhanced utilities
+  const initializeMap = useCallback(async () => {
     // Clear any existing timeout
     if (initTimeoutRef.current) {
       clearTimeout(initTimeoutRef.current);
@@ -162,8 +255,8 @@ const DriverRouteMap = ({
         console.error(
           "Map initialization failed after multiple attempts, using fallback"
         );
-        setMapStatus("fallback"); // This should trigger your fallback UI
-        onMapFailure(); // Call the callback to trigger fallback in parent
+        setMapStatus("fallback");
+        onMapFailure();
         return;
       }
 
@@ -176,48 +269,50 @@ const DriverRouteMap = ({
       return;
     }
 
-    if (!window.google || !window.google.maps) {
-      console.warn("Google Maps API not available, loading script...");
-      loadGoogleMapsScript();
-      return;
-    }
-
     try {
-      const googleMaps = window.google.maps;
-
       console.log("Initializing map with container:", mapRef.current);
 
-      // Create new map instance
-      const mapOptions = {
-        center: currentLocation
-          ? { lat: currentLocation.latitude, lng: currentLocation.longitude }
+      // Create an AbortController for possible cancellation
+      const abortController = new AbortController();
+      
+      // Use the enhanced initializeMapWithFallback function
+      const mapResult = await initializeMapWithFallback({
+        mapElement: mapRef.current,
+        center: driverLocation
+          ? { lat: driverLocation.latitude, lng: driverLocation.longitude }
           : defaultCenter,
         zoom: 14,
-        fullscreenControl: true,
-        mapTypeControl: true,
-        streetViewControl: false,
-        zoomControl: true,
-        gestureHandling: "cooperative",
-      };
-
-      const map = new googleMaps.Map(mapRef.current, mapOptions);
-      mapInstanceRef.current = map;
-
-      // Wait for map to be ready before proceeding
-      googleMaps.event.addListenerOnce(map, "idle", () => {
-        console.log("Map fully initialized and ready");
-        setMapReady(true);
-        setMapStatus("ready"); // Update map status
-        onLoadingComplete(); // Signal to parent that map is ready
-
-        // Create driver marker if we have location
-        if (currentLocation) {
-          createOrUpdateDriverMarker();
+        markerPosition: driverLocation 
+          ? { lat: driverLocation.latitude, lng: driverLocation.longitude }
+          : null,
+        markerIcon: "/assets/bus-icon.png",
+        abortSignal: abortController.signal,
+        onSuccess: (result) => {
+          console.log("Map initialization successful");
+        },
+        onError: (error) => {
+          console.error("Map initialization error in callback:", error);
         }
+      });
+      
+      // Store map and marker instances
+      mapInstanceRef.current = mapResult.map;
+      markerRef.current = mapResult.marker;
 
-        // Create direction renderer
-        const directionsRenderer = new googleMaps.DirectionsRenderer({
-          suppressMarkers: true, // We'll create our own markers
+      console.log("Map fully initialized and ready");
+      setMapReady(true);
+      setMapStatus("ready");
+      onLoadingComplete();
+
+      // Create driver marker if we have location and one wasn't created by initializeMapWithFallback
+      if (driverLocation && !markerRef.current) {
+        createOrUpdateDriverMarker();
+      }
+
+      // Create direction renderer
+      if (window.google && window.google.maps) {
+        const directionsRenderer = new window.google.maps.DirectionsRenderer({
+          suppressMarkers: true,
           preserveViewport: true,
           polylineOptions: {
             strokeColor: "#4285F4",
@@ -225,7 +320,7 @@ const DriverRouteMap = ({
             strokeOpacity: 0.8,
           },
         });
-        directionsRenderer.setMap(map);
+        directionsRenderer.setMap(mapResult.map);
         directionsRendererRef.current = directionsRenderer;
 
         // Create stop markers
@@ -235,7 +330,7 @@ const DriverRouteMap = ({
         if (stops && stops.length > 1) {
           calculateRoute();
         }
-      });
+      }
 
       setLoading(false);
     } catch (err) {
@@ -243,71 +338,98 @@ const DriverRouteMap = ({
       setError(`Map initialization failed: ${err.message}`);
       setMapStatus("error");
       setLoading(false);
-      onMapError(); // Signal error to parent
+      onMapError();
     }
   }, [
-    currentLocation,
+    driverLocation,
     stops,
     initializationAttempts,
     onLoadingComplete,
     onMapError,
     onMapFailure,
+    createOrUpdateDriverMarker,
+    createStopMarkers,
+    calculateRoute
   ]);
 
-  // Load Google Maps script
-  const loadGoogleMapsScript = useCallback(() => {
+  // Load Google Maps script using the imported loadGoogleMapsScript function
+  const loadMapScript = useCallback(() => {
+    // Don't load if already loaded
     if (window.google && window.google.maps) {
-      console.log("Google Maps already loaded");
       initializeMap();
       return;
     }
 
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-
+    // Fix: Use import.meta.env instead of process.env for Vite
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+    
     if (!apiKey) {
-      console.warn("Missing Google Maps API key");
-      setError("Google Maps API key not configured");
-      setMapStatus("error");
+      console.error("Google Maps API key missing");
+      setMapStatus("apikey-missing");
       setLoading(false);
-      onMapError();
+      onMapFailure();
       return;
     }
 
-    console.log("Loading Google Maps script...");
-
-    // Create script element
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,directions,geometry`;
-    script.async = true;
-    script.defer = true;
-
-    script.onload = () => {
-      console.log("Google Maps script loaded successfully");
-      // Short delay to ensure everything is ready
-      setTimeout(() => {
+    // Use the imported loadGoogleMapsScript function
+    loadGoogleMapsScript()
+      .then(() => {
+        console.log("Google Maps loaded successfully through centralized loader");
         initializeMap();
-      }, 100);
-    };
-
-    script.onerror = (e) => {
-      console.error("Failed to load Google Maps script:", e);
-      setError(
-        "Failed to load Google Maps. Check your internet connection and API key."
-      );
-      setMapStatus("error");
-      setLoading(false);
-      onMapError();
-    };
-
-    document.head.appendChild(script);
+      })
+      .catch(error => {
+        console.error("Failed to load Google Maps:", error);
+        setError("Failed to load map service");
+        setMapStatus("error");
+        setLoading(false);
+        onMapFailure();
+      });
 
     return () => {
-      // Clean up script if component unmounts during loading
-      if (document.head.contains(script)) {
-        document.head.removeChild(script);
-      }
+      // No cleanup needed here since the loadGoogleMapsScript handles cleanup
     };
-  }, [initializeMap, onMapError]);
+  }, [initializeMap, onMapFailure]);
+
+  // Helper function to create custom marker element for driver
+  const buildDriverMarkerElement = useCallback(() => {
+    const element = document.createElement("div");
+    element.className = "vehicle-marker";
+
+    // Create vehicle icon container
+    const iconElement = document.createElement("div");
+    iconElement.className = "bus-icon-container";
+    iconElement.style.width = "48px";
+    iconElement.style.height = "48px";
+    iconElement.style.position = "relative";
+
+    // Create the image element
+    const imgElement = document.createElement("img");
+    imgElement.src = "/assets/bus-icon.png";
+    imgElement.style.width = "100%";
+    imgElement.style.height = "100%";
+    iconElement.appendChild(imgElement);
+
+    // Add speed indicator if available
+    if (driverLocation?.speed) {
+      const speedBadge = document.createElement("div");
+      speedBadge.className = "speed-badge";
+      speedBadge.style.position = "absolute";
+      speedBadge.style.bottom = "-10px";
+      speedBadge.style.right = "-10px";
+      speedBadge.style.backgroundColor = "#4285F4";
+      speedBadge.style.color = "white";
+      speedBadge.style.borderRadius = "10px";
+      speedBadge.style.padding = "2px 6px";
+      speedBadge.style.fontSize = "10px";
+      speedBadge.style.fontWeight = "bold";
+      speedBadge.style.boxShadow = "0 1px 3px rgba(0,0,0,0.3)";
+      speedBadge.textContent = `${Math.round(driverLocation.speed)} km/h`;
+      iconElement.appendChild(speedBadge);
+    }
+
+    element.appendChild(iconElement);
+    return element;
+  }, [driverLocation]);
 
   // Create driver marker
   const createOrUpdateDriverMarker = useCallback(() => {
@@ -315,41 +437,127 @@ const DriverRouteMap = ({
       !window.google ||
       !window.google.maps ||
       !mapInstanceRef.current ||
-      !currentLocation
+      !driverLocation
     ) {
       return;
     }
 
     const newPosition = {
-      lat: currentLocation.latitude,
-      lng: currentLocation.longitude,
+      lat: driverLocation.latitude,
+      lng: driverLocation.longitude,
     };
 
     // If marker doesn't exist, create it
     if (!markerRef.current) {
-      const marker = new window.google.maps.Marker({
-        position: newPosition,
-        map: mapInstanceRef.current,
-        title: "Your Location",
-        icon: {
-          url: "/assets/bus-icon.png",
-          scaledSize: new window.google.maps.Size(48, 48),
-          anchor: new window.google.maps.Point(24, 24),
-        },
-        zIndex: 1000, // Make sure driver marker is on top
-      });
+      try {
+        // Use dynamic import to get the mapService with AdvancedMarkerElement support
+        import("@services/mapService")
+          .then(async ({ createMapMarker }) => {
+            const marker = await createMapMarker(
+              mapInstanceRef.current,
+              newPosition,
+              {
+                title: "Your Location",
+                iconUrl: "/assets/bus-icon.png",
+                iconSize: [48, 48],
+                zIndex: 1000,
+              }
+            );
 
-      markerRef.current = marker;
+            markerRef.current = marker;
+          })
+          .catch((err) => {
+            console.error("Failed to import map services:", err);
+            // Fallback to standard marker logic (existing code)
+          });
+      } catch (err) {
+        console.error("Error creating marker:", err);
+
+        // Try a minimal marker as last resort - existing fallback code
+        try {
+          markerRef.current = new window.google.maps.Marker({
+            position: newPosition,
+            map: mapInstanceRef.current,
+          });
+        } catch (fallbackErr) {
+          console.error(
+            "Critical error creating any marker type:",
+            fallbackErr
+          );
+        }
+      }
     } else {
-      // Update existing marker
-      markerRef.current.setPosition(newPosition);
+      // Update existing marker with proper type checking - existing code
+      try {
+        // For advanced marker (AdvancedMarkerElement)
+        if (
+          markerRef.current.content &&
+          typeof markerRef.current.position === "object"
+        ) {
+          markerRef.current.position = newPosition;
+        }
+        // For standard marker
+        else if (typeof markerRef.current.setPosition === "function") {
+          markerRef.current.setPosition(newPosition);
+        }
+      } catch (err) {
+        console.warn("Error updating marker position:", err);
+      }
     }
 
-    // Center map on marker if tracking is enabled
-    if (isLocationTracking) {
+    // If we are in location tracking mode, center map on current location
+    if (isLocationTracking && mapInstanceRef.current) {
       mapInstanceRef.current.panTo(newPosition);
     }
-  }, [currentLocation, isLocationTracking]);
+  }, [driverLocation, isLocationTracking]);
+
+  // Helper function to create custom marker element for stops
+  const buildStopMarkerElement = useCallback((stop, index, isActive) => {
+    const element = document.createElement("div");
+    element.className = "stop-marker";
+    element.style.position = "relative";
+
+    // Create the main circle
+    const markerCircle = document.createElement("div");
+    markerCircle.className = "marker-circle";
+    markerCircle.style.width = "24px";
+    markerCircle.style.height = "24px";
+    markerCircle.style.borderRadius = "50%";
+    markerCircle.style.backgroundColor = getStatusColor(
+      stop.status,
+      index,
+      activeStopIndex
+    );
+    markerCircle.style.border = "2px solid white";
+    markerCircle.style.boxShadow = "0 2px 4px rgba(0,0,0,0.3)";
+    markerCircle.style.display = "flex";
+    markerCircle.style.alignItems = "center";
+    markerCircle.style.justifyContent = "center";
+    markerCircle.style.color = "white";
+    markerCircle.style.fontWeight = "bold";
+    markerCircle.style.fontSize = "12px";
+    markerCircle.textContent = (index + 1).toString();
+
+    element.appendChild(markerCircle);
+
+    // For destination/school, use a different element
+    if (stop.isDestination || index === stops.length - 1) {
+      const imgContainer = document.createElement("div");
+      imgContainer.style.width = "36px";
+      imgContainer.style.height = "36px";
+
+      const imgElement = document.createElement("img");
+      imgElement.src = "/assets/school-icon.png";
+      imgElement.style.width = "100%";
+      imgElement.style.height = "100%";
+
+      imgContainer.appendChild(imgElement);
+      element.innerHTML = "";
+      element.appendChild(imgContainer);
+    }
+
+    return element;
+  }, [activeStopIndex]);
 
   // Create markers for each stop
   const createStopMarkers = useCallback(() => {
@@ -363,7 +571,13 @@ const DriverRouteMap = ({
     }
 
     // Clear existing markers
-    stopMarkersRef.current.forEach((marker) => marker.setMap(null));
+    stopMarkersRef.current.forEach((marker) => {
+      if (marker instanceof window.google.maps.marker.AdvancedMarkerElement) {
+        marker.map = null;
+      } else {
+        marker.setMap(null);
+      }
+    });
     stopMarkersRef.current = [];
 
     const markers = stops
@@ -371,64 +585,134 @@ const DriverRouteMap = ({
         // Skip if no position
         if (!stop.coordinates) return null;
 
-        // Determine marker color based on status
-        let markerIcon = {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          fillColor: getStatusColor(stop.status, index, activeStopIndex),
-          fillOpacity: 1,
-          strokeWeight: 2,
-          strokeColor: "#FFFFFF",
-          scale: 12,
-        };
+        try {
+          // Prefer AdvancedMarkerElement (recommended by Google)
+          if (
+            window.google.maps.marker &&
+            typeof window.google.maps.marker.AdvancedMarkerElement ===
+              "function"
+          ) {
+            try {
+              const markerContent = buildStopMarkerElement(
+                stop,
+                index,
+                index === activeStopIndex
+              );
 
-        if (stop.isDestination || index === stops.length - 1) {
-          // Special marker for final destination
-          markerIcon = {
-            url: "/assets/school-icon.png",
-            scaledSize: new window.google.maps.Size(36, 36),
-            anchor: new window.google.maps.Point(18, 18),
-          };
+              const marker =
+                new window.google.maps.marker.AdvancedMarkerElement({
+                  position: stop.coordinates,
+                  map: mapInstanceRef.current,
+                  title: stop.name,
+                  content: markerContent,
+                  zIndex: 100 - index,
+                });
+
+              // Use newer event model with error handling
+              try {
+                marker.addEventListener("click", () => {
+                  const infoWindow = new window.google.maps.InfoWindow({
+                    content: `
+                    <div class="p-3">
+                      <h3 class="font-bold mb-1">${stop.name}</h3>
+                      <p>${stop.address || ""}</p>
+                      <p>${stop.time || ""}</p>
+                      <p><b>${stop.students || 0} students</b></p>
+                    </div>
+                    `,
+                  });
+                  infoWindow.open(mapInstanceRef.current, marker);
+                });
+              } catch (eventErr) {
+                // Try newer gmp-click event if standard click fails
+                marker.addEventListener("gmp-click", () => {
+                  const infoWindow = new window.google.maps.InfoWindow({
+                    content: `
+                    <div class="p-3">
+                      <h3 class="font-bold mb-1">${stop.name}</h3>
+                      <p>${stop.address || ""}</p>
+                      <p>${stop.time || ""}</p>
+                      <p><b>${stop.students || 0} students</b></p>
+                    </div>
+                    `,
+                  });
+                  infoWindow.open(mapInstanceRef.current, marker);
+                });
+              }
+
+              return marker;
+            } catch (markerErr) {
+              console.warn("Error creating advanced marker:", markerErr);
+              return createStandardStopMarker(stop, index);
+            }
+          } else {
+            // Fall back to standard marker
+            return createStandardStopMarker(stop, index);
+          }
+        } catch (err) {
+          console.error("Error creating advanced marker, falling back:", err);
+          return createStandardStopMarker(stop, index);
         }
-
-        // Create marker
-        const marker = new window.google.maps.Marker({
-          position: stop.coordinates,
-          map: mapInstanceRef.current,
-          title: stop.name,
-          icon: markerIcon,
-          label: {
-            text: (index + 1).toString(),
-            color: "#FFFFFF",
-            fontSize: "12px",
-            fontWeight: "bold",
-          },
-          zIndex: 100 - index, // Higher index for earlier stops
-        });
-
-        // Create info window
-        const infoWindow = new window.google.maps.InfoWindow({
-          content: `
-          <div class="p-3">
-            <h3 class="font-bold mb-1">${stop.name}</h3>
-            <p>${stop.address}</p>
-            <p>${stop.time || ""}</p>
-            <p><b>${stop.students || 0} students</b></p>
-          </div>
-        `,
-        });
-
-        // Add click listener
-        marker.addListener("click", () => {
-          infoWindow.open(mapInstanceRef.current, marker);
-        });
-
-        return marker;
       })
       .filter(Boolean);
 
     stopMarkersRef.current = markers;
     setStopMarkers(markers);
-  }, [stops, activeStopIndex]);
+  }, [stops, activeStopIndex, buildStopMarkerElement]);
+
+  // Helper function for creating standard markers as fallback
+  const createStandardStopMarker = useCallback((stop, index) => {
+    let markerIcon = {
+      path: window.google.maps.SymbolPath.CIRCLE,
+      fillColor: getStatusColor(stop.status, index, activeStopIndex),
+      fillOpacity: 1,
+      strokeWeight: 2,
+      strokeColor: "#FFFFFF",
+      scale: 12,
+    };
+
+    if (stop.isDestination || index === stops.length - 1) {
+      markerIcon = {
+        url: "/assets/school-icon.png",
+        scaledSize: new window.google.maps.Size(36, 36),
+        anchor: new window.google.maps.Point(18, 18),
+      };
+    }
+
+    // Create marker
+    const marker = new window.google.maps.Marker({
+      position: stop.coordinates,
+      map: mapInstanceRef.current,
+      title: stop.name,
+      icon: markerIcon,
+      label: {
+        text: (index + 1).toString(),
+        color: "#FFFFFF",
+        fontSize: "12px",
+        fontWeight: "bold",
+      },
+      zIndex: 100 - index,
+    });
+
+    // Create info window
+    const infoWindow = new window.google.maps.InfoWindow({
+      content: `
+      <div class="p-3">
+        <h3 class="font-bold mb-1">${stop.name}</h3>
+        <p>${stop.address}</p>
+        <p>${stop.time || ""}</p>
+        <p><b>${stop.students || 0} students</b></p>
+      </div>
+      `,
+    });
+
+    // Add click listener
+    marker.addListener("click", () => {
+      infoWindow.open(mapInstanceRef.current, marker);
+    });
+
+    return marker;
+  }, [activeStopIndex]);
 
   // Calculate route
   const calculateRoute = useCallback(() => {
@@ -592,6 +876,33 @@ const DriverRouteMap = ({
     }
   };
 
+  // Location permission request button
+  const LocationPermissionButton = () => (
+    <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow-md">
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+      <h3 className="text-lg font-medium text-gray-900 mb-2">Location Access Required</h3>
+      <p className="text-gray-600 text-center mb-4">To track your position on the route, we need permission to access your device's location.</p>
+      <button 
+        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+        onClick={async () => {
+          const permission = await locationTracker.requestPermission();
+          setLocationPermission(permission);
+          
+          if (permission === 'granted') {
+            setIsTrackingActive(false); // Reset to trigger tracking start
+          } else {
+            toast.warning("Location permission denied. Route tracking will be limited.");
+          }
+        }}
+      >
+        Enable Location Tracking
+      </button>
+    </div>
+  );
+
   // Helper to generate a fallback error display
   const FallbackDisplay = () => (
     <div className="p-4 bg-white rounded-lg shadow-lg">
@@ -685,21 +996,69 @@ const DriverRouteMap = ({
     </div>
   );
 
-  // Initialize map with a delay to ensure container is ready
+  // Initialize map with enhanced cleanup to prevent "message channel closed" errors
   useEffect(() => {
-    // Delay initialization slightly to ensure DOM is ready
-    const timer = setTimeout(() => {
-      initializeMap();
-    }, 300);
-
-    return () => {
-      clearTimeout(timer);
-      // Also clear any pending initialization timeout
-      if (initTimeoutRef.current) {
-        clearTimeout(initTimeoutRef.current);
+    // Create an AbortController to help manage async operations during unmount
+    const abortController = new AbortController();
+    const signal = abortController.signal;
+    
+    // Track mounted state for additional safety
+    let isMounted = true;
+    
+    // Function to safely execute callbacks only if component is still mounted
+    const safeExecute = (callback) => {
+      if (isMounted && !signal.aborted) {
+        callback();
       }
     };
-  }, [initializeMap]);
+    
+    // Delay initialization slightly to ensure DOM is ready
+    const timer = setTimeout(() => {
+      if (signal.aborted) return;
+      
+      // Safely load Google Maps with abort checking
+      try {
+        loadMapScript();
+      } catch (err) {
+        console.error("Error in map initialization:", err);
+        if (isMounted && !signal.aborted) {
+          setError(`Map initialization failed: ${err.message}`);
+          setMapStatus("error");
+          onMapError();
+        }
+      }
+    }, 300);
+
+    // Enhanced cleanup function
+    return () => {
+      isMounted = false;
+      abortController.abort();
+      clearTimeout(timer);
+      
+      // Clear any pending initialization timeout
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
+      }
+      
+      // If we have map instance references, clean them up
+      if (mapInstanceRef.current) {
+        // Clean up Google Maps event listeners
+        if (window.google?.maps) {
+          window.google.maps.event.clearInstanceListeners(mapInstanceRef.current);
+        }
+        mapInstanceRef.current = null;
+      }
+      
+      // Clean up any markers
+      if (markerRef.current) {
+        if (typeof markerRef.current.setMap === 'function') {
+          markerRef.current.setMap(null);
+        }
+        markerRef.current = null;
+      }
+    };
+  }, [loadMapScript, onMapError]);
 
   // Automatic fallback if loading takes too long
   useEffect(() => {
@@ -736,7 +1095,7 @@ const DriverRouteMap = ({
       window.google &&
       window.google.maps &&
       mapInstanceRef.current &&
-      currentLocation
+      driverLocation
     ) {
       createOrUpdateDriverMarker();
 
@@ -744,21 +1103,21 @@ const DriverRouteMap = ({
       if (vehicleId) {
         updateVehicleLocation(
           vehicleId,
-          currentLocation.latitude,
-          currentLocation.longitude,
-          currentLocation.speed
+          driverLocation.latitude,
+          driverLocation.longitude,
+          driverLocation.speed
         );
       }
     }
 
     // If using emergency map, update vehicle position
-    if (currentLocation && window.emergencyRouteMap) {
+    if (driverLocation && window.emergencyRouteMap) {
       window.emergencyRouteMap.updateVehiclePosition(
-        currentLocation.latitude,
-        currentLocation.longitude
+        driverLocation.latitude,
+        driverLocation.longitude
       );
     }
-  }, [currentLocation, createOrUpdateDriverMarker, vehicleId, mapReady]);
+  }, [driverLocation, createOrUpdateDriverMarker, vehicleId, mapReady]);
 
   // Ensure map failure is called on error
   useEffect(() => {
@@ -770,6 +1129,11 @@ const DriverRouteMap = ({
   // Clean up resources when component unmounts
   useEffect(() => {
     return () => {
+      // Stop location tracking
+      if (locationTrackerRef.current && locationTrackerRef.current.stop) {
+        locationTrackerRef.current.stop();
+      }
+    
       if (mapInstanceRef.current && window.google?.maps) {
         // Remove listeners and clean up resources
         window.google.maps.event.clearInstanceListeners(mapInstanceRef.current);
@@ -793,19 +1157,46 @@ const DriverRouteMap = ({
     };
   }, []);
 
-  // Show loading spinner
-  if (loading) {
+  // Check if we need to prompt for location permission
+  if (locationPermission === 'prompt' || locationPermission === 'denied') {
     return (
-      <div className="flex items-center justify-center h-full w-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mr-2"></div>
-        <span>Loading map...</span>
+      <div className="h-full w-full flex items-center justify-center">
+        <LocationPermissionButton />
       </div>
     );
   }
 
+  // Show loading spinner
+  if (loading) {
+    return <MapLoadingState />;
+  }
+
   // Show fallback component when map can't be loaded
   if (mapStatus === "fallback") {
-    return <FallbackDisplay />;
+    return (
+      <div className="h-full w-full">
+        <div ref={mapRef}>
+          {/* Fallback display will be created inside this element */}
+        </div>
+        {locationFallback.createFallbackDisplay(mapRef, driverLocation, {
+          title: "Route Map",
+          showRetry: true,
+          onRetry: () => {
+            setError(null);
+            setInitializationAttempts(0);
+            setLoading(true);
+            setMapStatus("loading");
+            onLoadingStart();
+            initializeMap();
+          },
+          additionalInfo: {
+            stops: stops,
+            activeStopIndex: activeStopIndex,
+            routeId: routeId,
+          },
+        })}
+      </div>
+    );
   }
 
   // Show error
@@ -842,12 +1233,12 @@ const DriverRouteMap = ({
       {/* Map controls */}
       <div className="absolute bottom-4 right-4 flex flex-col space-y-2">
         <button
-          className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100"
+          className={`p-2 rounded-full shadow-md ${isLocationTracking ? 'bg-blue-500 text-white' : 'bg-white text-blue-600'}`}
           onClick={() => {
-            if (currentLocation && mapInstanceRef.current) {
+            if (driverLocation && mapInstanceRef.current) {
               mapInstanceRef.current.panTo({
-                lat: currentLocation.latitude,
-                lng: currentLocation.longitude,
+                lat: driverLocation.latitude,
+                lng: driverLocation.longitude,
               });
               mapInstanceRef.current.setZoom(16);
               setIsLocationTracking(true);
@@ -857,7 +1248,7 @@ const DriverRouteMap = ({
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 text-blue-600"
+            className="h-6 w-6"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -909,8 +1300,36 @@ const DriverRouteMap = ({
           </svg>
         </button>
       </div>
+      
+      {/* Location accuracy indicator */}
+      {driverLocation && driverLocation.accuracy && (
+        <div className="absolute top-4 right-4 bg-white py-1 px-3 rounded-full shadow-md text-xs">
+          {driverLocation.accuracy > 100 ? (
+            <span className="text-yellow-600">Low accuracy: {Math.round(driverLocation.accuracy)}m</span>
+          ) : driverLocation.accuracy > 50 ? (
+            <span className="text-blue-600">Accuracy: {Math.round(driverLocation.accuracy)}m</span>
+          ) : (
+            <span className="text-green-600">High accuracy: {Math.round(driverLocation.accuracy)}m</span>
+          )}
+        </div>
+      )}
+      
+      {/* Position timestamp */}
+      {driverLocation && driverLocation.timestamp && (
+        <div className="absolute top-4 left-4 bg-white py-1 px-3 rounded-full shadow-md text-xs text-gray-600">
+          Updated: {new Date(driverLocation.timestamp).toLocaleTimeString()}
+        </div>
+      )}
     </div>
   );
 };
 
-export default DriverRouteMap;
+import MapErrorBoundary from "../../../common/MapErrorBoundary";
+
+const DriverRouteMapWithErrorBoundary = (props) => (
+  <MapErrorBoundary>
+    <DriverRouteMap {...props} />
+  </MapErrorBoundary>
+);
+
+export default DriverRouteMapWithErrorBoundary;
