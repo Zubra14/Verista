@@ -1,0 +1,87 @@
+name: Security Scan
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly on Sunday at midnight
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: |
+          npm ci --prefix frontend
+          npm ci --prefix backend
+      
+      - name: Run security audit
+        run: |
+          echo "## Frontend Security Scan" >> $GITHUB_STEP_SUMMARY
+          npm audit --prefix frontend >> $GITHUB_STEP_SUMMARY
+          echo "## Backend Security Scan" >> $GITHUB_STEP_SUMMARY
+          npm audit --prefix backend >> $GITHUB_STEP_SUMMARY
+      
+      - name: Fix vulnerabilities
+        run: |
+          npm audit fix --prefix frontend
+          npm audit fix --prefix backend
+
+  dependabot:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Dependabot Configuration
+        run: |
+          mkdir -p .github
+          cat > .github/dependabot.yml << EOL
+          version: 2
+          updates:
+            - package-ecosystem: "npm"
+              directory: "/frontend"
+              schedule:
+                interval: "weekly"
+              versioning-strategy: "auto"
+              open-pull-requests-limit: 10
+              labels:
+                - "dependencies"
+                - "security"
+              
+            - package-ecosystem: "npm"
+              directory: "/backend"
+              schedule:
+                interval: "weekly"
+              versioning-strategy: "auto"
+              open-pull-requests-limit: 10
+              labels:
+                - "dependencies"
+                - "security"
+              
+            - package-ecosystem: "github-actions"
+              directory: "/"
+              schedule:
+                interval: "weekly"
+              labels:
+                - "dependencies"
+                - "security"
+          EOL
+          
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "Add Dependabot configuration"
+          file_pattern: .github/dependabot.yml

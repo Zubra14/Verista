@@ -1,0 +1,67 @@
+name: NPM Security Audit
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/package*.json'
+      - 'backend/package*.json'
+      - 'package*.json'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'frontend/package*.json'
+      - 'backend/package*.json'
+      - 'package*.json'
+  schedule:
+    - cron: '0 0 * * 0'  # Run every Sunday at midnight
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - name: Audit Frontend Dependencies
+        run: |
+          cd frontend
+          npm audit --production
+        continue-on-error: true
+      
+      - name: Audit Backend Dependencies
+        run: |
+          cd backend
+          npm audit --production
+        continue-on-error: true
+      
+      - name: Audit Root Dependencies
+        run: |
+          npm audit --production
+        continue-on-error: true
+        
+      - name: Generate Audit Report
+        run: |
+          echo "# npm Audit Security Report" > audit-report.md
+          echo "## Frontend" >> audit-report.md
+          cd frontend && npm audit --json | npx -y audit-report-markdown >> ../audit-report.md
+          
+          echo "## Backend" >> audit-report.md
+          cd ../backend && npm audit --json | npx -y audit-report-markdown >> ../audit-report.md
+          
+          echo "## Root Project" >> audit-report.md
+          cd .. && npm audit --json | npx -y audit-report-markdown >> audit-report.md
+        continue-on-error: true
+      
+      - name: Upload Audit Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: npm-audit-report
+          path: audit-report.md
+        if: always()
