@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile Responsiveness Test</title>
+    <script>
+        // Redirect to main app if needed
+        function redirectToMain() {
+            if (confirm("Return to main application?")) {
+                window.location.href = "/";
+            }
+        }
+
+        // Check viewport and device settings
+        function checkViewport() {
+            const report = document.getElementById('viewport-report');
+            report.innerHTML = `
+                <div><strong>Window width:</strong> ${window.innerWidth}px</div>
+                <div><strong>Window height:</strong> ${window.innerHeight}px</div>
+                <div><strong>Device pixel ratio:</strong> ${window.devicePixelRatio}</div>
+                <div><strong>User agent:</strong> ${navigator.userAgent}</div>
+                <div><strong>Touch enabled:</strong> ${('ontouchstart' in window) ? 'Yes' : 'No'}</div>
+                <div><strong>Safe area insets:</strong> ${CSS.supports('padding-top: env(safe-area-inset-top)') ? 'Supported' : 'Not supported'}</div>
+            `;
+        }
+
+        // Test touch responsiveness
+        function setupTouchTest() {
+            const touchArea = document.getElementById('touch-test-area');
+            let startTime;
+            let reportEl = document.getElementById('touch-test-report');
+            
+            touchArea.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startTime = performance.now();
+                touchArea.classList.add('active');
+                reportEl.textContent = "Touch detected!";
+            });
+            
+            touchArea.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                const responseTime = performance.now() - startTime;
+                touchArea.classList.remove('active');
+                reportEl.textContent = `Response time: ${responseTime.toFixed(2)}ms`;
+            });
+        }
+
+        // Test button sizes
+        function setupButtonTest() {
+            const buttons = document.querySelectorAll('.test-button');
+            const report = document.getElementById('button-test-report');
+            
+            buttons.forEach(button => {
+                button.addEventListener('click', () => {
+                    report.textContent = `Clicked: ${button.textContent}`;
+                    setTimeout(() => {
+                        report.textContent = '';
+                    }, 1000);
+                });
+            });
+        }
+
+        // Run all tests when page loads
+        window.addEventListener('load', () => {
+            checkViewport();
+            setupTouchTest();
+            setupButtonTest();
+            
+            // Update viewport info when window resizes
+            window.addEventListener('resize', checkViewport);
+        });
+    </script>
+    <style>
+        :root {
+            --mobile-safe-area-top: env(safe-area-inset-top, 0px);
+            --mobile-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9fafb;
+            color: #1f2937;
+            padding-top: var(--mobile-safe-area-top);
+            padding-bottom: var(--mobile-safe-area-bottom);
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        h2 {
+            font-size: 1.2rem;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: #4b5563;
+        }
+        
+        #viewport-report {
+            background-color: #f3f4f6;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+        
+        #touch-test-area {
+            height: 100px;
+            background-color: #3b82f6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 500;
+            transition: background-color 0.1s;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        
+        #touch-test-area.active {
+            background-color: #2563eb;
+        }
+        
+        #touch-test-report, #button-test-report {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 0.875rem;
+            min-height: 1.5rem;
+        }
+        
+        .button-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        
+        .test-button {
+            background-color: #f3f4f6;
+            border: none;
+            border-radius: 4px;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: 500;
+            color: #4b5563;
+            transition: background-color 0.1s;
+        }
+        
+        .test-button.size-xs {
+            width: 24px;
+            height: 24px;
+        }
+        
+        .test-button.size-sm {
+            width: 32px;
+            height: 32px;
+        }
+        
+        .test-button.size-md {
+            width: 44px;
+            height: 44px;
+        }
+        
+        .test-button.size-lg {
+            width: 48px;
+            height: 48px;
+        }
+        
+        .test-button.size-xl {
+            width: 56px;
+            height: 56px;
+        }
+        
+        .test-button:active {
+            background-color: #e5e7eb;
+        }
+        
+        .main-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            padding: 12px 16px;
+            padding-bottom: calc(12px + var(--mobile-safe-area-bottom));
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .main-button {
+            background-color: #3b82f6;
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            display: inline-block;
+            cursor: pointer;
+            min-height: 44px;
+        }
+
+        /* Safe area visualization */
+        .safe-area-viz {
+            background-color: rgba(239, 68, 68, 0.2);
+            position: fixed;
+            left: 0;
+            right: 0;
+            height: var(--mobile-safe-area-top);
+            top: 0;
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        .safe-area-viz.bottom {
+            top: auto;
+            bottom: 0;
+            height: var(--mobile-safe-area-bottom);
+        }
+        
+        /* Mobile CSS classes test */
+        .css-test-section {
+            margin-top: 1rem;
+        }
+        
+        .test-element {
+            border: 1px solid #d1d5db;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+        
+        .mobile-p-0 {
+            padding: 0;
+        }
+        
+        .mobile-text-sm {
+            font-size: 0.875rem;
+        }
+        
+        .mobile-stack {
+            display: flex;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-stack {
+                flex-direction: column;
+            }
+            
+            .mobile-stack > * {
+                width: 100%;
+                margin-bottom: 8px;
+            }
+            
+            .mobile-p-0 {
+                padding: 0 !important;
+            }
+            
+            .mobile-text-sm {
+                font-size: 0.875rem !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Safe area visualizers -->
+    <div class="safe-area-viz top"></div>
+    <div class="safe-area-viz bottom"></div>
+
+    <div class="container">
+        <h1>Mobile Responsiveness Test</h1>
+        
+        <div class="test-section">
+            <h2>Viewport Information</h2>
+            <div id="viewport-report"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Touch Responsiveness Test</h2>
+            <div id="touch-test-area">Tap or touch here</div>
+            <div id="touch-test-report"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Button Size Test</h2>
+            <p>Tap each button to test touch target size:</p>
+            <div class="button-container">
+                <button class="test-button size-xs">XS</button>
+                <button class="test-button size-sm">SM</button>
+                <button class="test-button size-md">MD</button>
+                <button class="test-button size-lg">LG</button>
+                <button class="test-button size-xl">XL</button>
+            </div>
+            <div id="button-test-report"></div>
+        </div>
+        
+        <div class="test-section css-test-section">
+            <h2>CSS Mobile Classes Test</h2>
+            
+            <div class="test-element mobile-p-0">
+                <p>This element has mobile-p-0 class (no padding on mobile)</p>
+            </div>
+            
+            <div class="test-element">
+                <p class="mobile-text-sm">This text has mobile-text-sm class (smaller on mobile)</p>
+            </div>
+            
+            <div class="mobile-stack">
+                <div class="test-element">Stack item 1</div>
+                <div class="test-element">Stack item 2</div>
+            </div>
+        </div>
+        
+        <!-- Add space for the fixed footer -->
+        <div style="height: 80px;"></div>
+    </div>
+    
+    <nav class="main-nav">
+        <button onclick="redirectToMain()" class="main-button">Back to App</button>
+        <button onclick="checkViewport()" class="main-button">Refresh</button>
+    </nav>
+</body>
+</html>

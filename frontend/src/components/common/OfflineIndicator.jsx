@@ -1,10 +1,12 @@
 // src/components/common/OfflineIndicator.jsx
 import React, { useEffect, useState } from "react";
 import { connectionState } from "../../lib/supabase";
+import { useBreakpoint } from "../../utils/responsiveHelpers";
 
 const OfflineIndicator = () => {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [pendingChanges, setPendingChanges] = useState(0);
+  const isMobile = useBreakpoint('md', 'smaller');
 
   useEffect(() => {
     // Check for pending operations
@@ -52,21 +54,29 @@ const OfflineIndicator = () => {
 
   if (!isOffline && pendingChanges === 0) return null;
 
+  // Adjust position for mobile to avoid overlapping with other elements
+  const positionClass = isMobile 
+    ? "fixed bottom-20 right-3 left-3 z-50 max-w-xs mx-auto" 
+    : "fixed bottom-4 right-4 z-50";
+
   return (
     <div
-      className={`fixed bottom-4 right-4 z-50 shadow-lg rounded-lg ${
+      className={`${positionClass} shadow-lg rounded-lg ${
         isOffline ? "bg-red-50" : "bg-yellow-50"
       }`}
+      role="alert"
+      aria-live="polite"
     >
-      <div className="p-4">
+      <div className={`${isMobile ? 'p-3' : 'p-4'}`}>
         {isOffline ? (
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <svg
-                className="h-5 w-5 text-red-600"
+                className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-red-600`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -77,23 +87,25 @@ const OfflineIndicator = () => {
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">
+              <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-red-800`}>
                 You are offline
               </h3>
-              <p className="text-xs text-red-700 mt-1">
-                Limited functionality available. Changes will sync when back
-                online.
-              </p>
+              {!isMobile && (
+                <p className="text-xs text-red-700 mt-1">
+                  Limited functionality available. Changes will sync when back online.
+                </p>
+              )}
             </div>
           </div>
         ) : (
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <svg
-                className="h-5 w-5 text-yellow-600"
+                className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-yellow-600`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -104,7 +116,7 @@ const OfflineIndicator = () => {
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">
+              <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-yellow-800`}>
                 Syncing changes
               </h3>
               <p className="text-xs text-yellow-700 mt-1">

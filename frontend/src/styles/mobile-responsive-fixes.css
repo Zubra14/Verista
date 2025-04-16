@@ -1,0 +1,543 @@
+/* 
+ * Mobile-Responsive Fixes CSS
+ * A comprehensive set of mobile-first media queries to address responsive design issues
+ * This file follows a mobile-first approach, so the base styles are for mobile,
+ * and we add enhancements for larger screens with media queries
+ */
+
+/* Base styles (mobile-first) */
+:root {
+  --mobile-padding: 12px;
+  --header-height: 56px;
+  --mobile-nav-height: 64px;
+  --sidebar-collapsed-width: 0px;
+  --sidebar-expanded-width: 250px;
+  --mobile-touch-min-height: 44px;
+  --mobile-bottom-padding: 80px; /* Extra padding at bottom to account for mobile nav */
+  --mobile-safe-area-bottom: env(safe-area-inset-bottom, 0px); /* iOS safe area */
+  --mobile-safe-area-top: env(safe-area-inset-top, 0px); /* iOS safe area */
+}
+
+/* Global touch target improvements */
+button, 
+a, 
+input[type="button"],
+input[type="submit"],
+.clickable {
+  min-height: var(--mobile-touch-min-height);
+  cursor: pointer;
+}
+
+/* Mobile spacing corrections */
+@media (max-width: 768px) {
+  .container {
+    padding-left: var(--mobile-padding);
+    padding-right: var(--mobile-padding);
+  }
+
+  .dashboard-content {
+    padding-bottom: calc(var(--mobile-bottom-padding) + var(--mobile-safe-area-bottom));
+  }
+
+  /* Adjust header spacing on mobile */
+  .page-header,
+  .dashboard-header {
+    padding: 12px var(--mobile-padding);
+    margin-bottom: 12px;
+    padding-top: calc(12px + var(--mobile-safe-area-top));
+  }
+
+  /* Form elements on mobile */
+  input, 
+  select, 
+  textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+
+  /* Card adjustments for better mobile layout */
+  .card, 
+  .info-card {
+    margin-bottom: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Enhanced mobile spacing utilities */
+  .mobile-p-0 {
+    padding: 0 !important;
+  }
+  
+  .mobile-px-3 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  
+  .mobile-py-2 {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+  
+  .mobile-text-sm {
+    font-size: 0.875rem !important;
+    line-height: 1.25rem !important;
+  }
+  
+  .mobile-text-xs {
+    font-size: 0.75rem !important;
+    line-height: 1rem !important;
+  }
+  
+  .mobile-mt-0 {
+    margin-top: 0 !important;
+  }
+  
+  .mobile-mb-3 {
+    margin-bottom: 0.75rem !important;
+  }
+  
+  .mobile-gap-1 {
+    gap: 0.25rem !important;
+  }
+  
+  .mobile-gap-2 {
+    gap: 0.5rem !important;
+  }
+  
+  /* Fix for iPhone bottom spacing */
+  .mobile-fixed-bottom {
+    bottom: calc(1rem + var(--mobile-safe-area-bottom)) !important;
+  }
+  
+  /* Stacking elements on mobile */
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+  
+  .mobile-stack > * {
+    width: 100% !important;
+    margin-bottom: 0.5rem;
+  }
+  
+  .mobile-stack > *:last-child {
+    margin-bottom: 0;
+  }
+  
+  /* Fix for focus states on mobile */
+  *:focus {
+    outline: 2px solid rgba(59, 130, 246, 0.5) !important;
+  }
+}
+
+/* Ensures content doesn't overflow on small screens */
+.overflow-fix {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Table responsiveness */
+@media (max-width: 768px) {
+  .responsive-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Convert tables to card layout on mobile */
+  .mobile-card-table tr {
+    display: block;
+    margin-bottom: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+  }
+
+  .mobile-card-table td {
+    display: flex;
+    padding: 8px 12px;
+    border: none;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .mobile-card-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    flex: 1;
+    margin-right: 12px;
+  }
+
+  .mobile-card-table th {
+    display: none;
+  }
+}
+
+/* Navigation and sidebar adjustments */
+@media (max-width: 768px) {
+  .sidebar-expanded {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 100vw;
+    z-index: 50;
+    background-color: rgba(0, 0, 0, 0.25);
+  }
+
+  .sidebar-expanded .sidebar-content {
+    width: 85%;
+    max-width: 300px;
+    height: 100%;
+    background-color: white;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    padding-bottom: var(--mobile-safe-area-bottom);
+  }
+
+  .sidebar-collapsed {
+    display: none;
+  }
+
+  .sidebar-toggle {
+    display: block;
+    position: fixed;
+    bottom: calc(20px + var(--mobile-safe-area-bottom));
+    right: 20px;
+    z-index: 40;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #3b82f6;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Adjust content margin when sidebar is hidden */
+  .content-with-sidebar {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  /* Dashboard layout adjustments */
+  .dashboard-layout {
+    flex-direction: column;
+  }
+
+  .dashboard-layout-main {
+    width: 100%;
+  }
+  
+  /* Mobile navigation spacing adjustments */
+  .mobile-nav {
+    padding-bottom: var(--mobile-safe-area-bottom);
+  }
+  
+  /* Bottom-aligned elements should respect safe area */
+  .fixed-bottom,
+  .absolute-bottom {
+    bottom: calc(0px + var(--mobile-safe-area-bottom));
+  }
+}
+
+/* Dashboard module specific fixes */
+@media (max-width: 768px) {
+  /* Child management cards */
+  .child-card {
+    flex-direction: column;
+    padding: 16px;
+  }
+
+  .child-card-info {
+    width: 100%;
+  }
+
+  .child-card-actions {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+  }
+
+  /* Driver route map container */
+  .route-map-container {
+    height: 50vh;
+    min-height: 300px;
+  }
+
+  /* AI Assistant chat interface */
+  .chat-container {
+    height: 60vh;
+    min-height: 350px;
+  }
+
+  .chat-input-container {
+    padding: 8px;
+    padding-bottom: calc(8px + var(--mobile-safe-area-bottom));
+  }
+
+  .chat-message {
+    max-width: 85%;
+    margin-bottom: 8px;
+  }
+  
+  /* Improved bubble chat layout */
+  .chat-bubble {
+    max-width: 85%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+  
+  .chat-bubble-user {
+    background-color: #3b82f6;
+    color: white;
+    border-bottom-right-radius: 4px;
+    align-self: flex-end;
+  }
+  
+  .chat-bubble-assistant {
+    background-color: #f3f4f6;
+    color: #1f2937;
+    border-bottom-left-radius: 4px;
+    align-self: flex-start;
+  }
+
+  /* Location permission modal */
+  .location-permission-modal {
+    width: 90%;
+    max-width: none;
+  }
+  
+  /* Button group responsive adjustment */
+  .button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .button-group > button {
+    flex: 1 1 auto;
+    min-width: 80px;
+  }
+}
+
+/* Medium screens and up */
+@media (min-width: 769px) {
+  .container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .content-with-sidebar {
+    margin-left: var(--sidebar-expanded-width);
+    width: calc(100% - var(--sidebar-expanded-width));
+    transition: margin-left 0.3s, width 0.3s;
+  }
+
+  .content-with-sidebar-collapsed {
+    margin-left: var(--sidebar-collapsed-width);
+    width: calc(100% - var(--sidebar-collapsed-width));
+  }
+
+  /* Child management cards for larger screens */
+  .child-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .child-card-info {
+    width: 70%;
+  }
+
+  .child-card-actions {
+    width: 30%;
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  /* Hide mobile-only content */
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* Tablet-specific adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .container {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  /* Grid layout adjustments for tablets */
+  .grid-cols-3 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Desktop and large screens */
+@media (min-width: 1025px) {
+  .container {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+
+  /* Restore original grid layouts */
+  .grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  .grid-cols-4 {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+  
+  /* Hide content only needed on mobile */
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* Fix for iOS fixed positioning issues */
+@supports (-webkit-overflow-scrolling: touch) {
+  .fixed-ios {
+    position: absolute;
+  }
+
+  body.modal-open {
+    position: fixed;
+    width: 100%;
+  }
+  
+  /* iOS notch and home indicator spacing adjustments */
+  .ios-notch-padding {
+    padding-top: var(--mobile-safe-area-top);
+  }
+  
+  .ios-home-indicator-padding {
+    padding-bottom: var(--mobile-safe-area-bottom);
+  }
+  
+  .ios-top-fixed {
+    top: var(--mobile-safe-area-top);
+  }
+  
+  .ios-bottom-fixed {
+    bottom: var(--mobile-safe-area-bottom);
+  }
+}
+
+/* High contrast mode and accessibility improvements */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: #000000;
+    --text-color: #000000;
+    --background-color: #ffffff;
+  }
+
+  button, 
+  a, 
+  input, 
+  .clickable {
+    outline: 2px solid var(--border-color) !important;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Print styles - hide unnecessary elements */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  body {
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+}
+
+/* Utility classes for mobile-specific display */
+.desktop-only {
+  display: none !important;
+}
+
+@media (min-width: 769px) {
+  .desktop-only {
+    display: block !important;
+  }
+  
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* Enhanced touch target classes for better accessibility */
+.touch-target-lg {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+/* Common layout patterns for mobile interfaces */
+.mobile-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: white;
+  padding: 8px 16px;
+  padding-bottom: calc(8px + var(--mobile-safe-area-bottom));
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Mobile menu animation classes */
+.slide-in {
+  animation: slideIn 0.3s forwards;
+}
+
+.slide-out {
+  animation: slideOut 0.3s forwards;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+/* Improved button focus states for touch interfaces */
+@media (max-width: 768px) {
+  button:focus, 
+  a:focus, 
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+  }
+}
